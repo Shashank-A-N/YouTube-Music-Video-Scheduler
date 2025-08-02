@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Multi-Alarm Scheduler</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for theming and a smooth transition */
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.5s ease-in-out;
+        }
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
+        }
+        /* Toggle switch styles */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #48bb78;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #48bb78;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body id="main-body" class="bg-gray-900 text-white">
+
+    <div class="min-h-screen font-sans flex justify-center p-4 sm:p-6">
+        <div class="w-full max-w-2xl mx-auto">
+            <header class="text-center mb-4">
+                <h1 id="greeting" class="text-4xl md:text-5xl font-bold text-white transition-colors duration-500">Good Morning</h1>
+                <p id="sub-greeting" class="text-gray-300 mt-2 transition-colors duration-500">Welcome to your YouTube Multi-Alarm Scheduler</p>
+            </header>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 mb-6 text-sm text-gray-400">
+                <div class="flex items-center justify-center space-x-2">
+                    <label for="weather-toggle">Dynamic Theme</label>
+                    <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="weather-toggle" id="weather-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                        <label for="weather-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                    </div>
+                </div>
+                <div id="open-mode-container" class="flex items-center space-x-4">
+                    <span>Open links in:</span>
+                    <div class="flex items-center">
+                        <input type="radio" id="open-new-tab" name="open-mode" value="newTab" class="mr-1" checked>
+                        <label for="open-new-tab">New Tab</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="radio" id="open-same-tab" name="open-mode" value="sameTab" class="mr-1">
+                        <label for="open-same-tab">Same Tab</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Popup Blocker Note -->
+            <div id="popup-note" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded-lg mb-6 flex justify-between items-center">
+                <p class="text-sm font-semibold">
+                    <strong>Note:</strong> For the "New Tab" feature to work, please <strong class="underline">allow popups</strong> from this site in your browser's address bar.
+                </p>
+                <button onclick="document.getElementById('popup-note').style.display='none'" class="font-bold text-lg text-yellow-800">&times;</button>
+            </div>
+
+
+            <div id="message-container" class="transition-opacity duration-300"></div>
+            
+            <div class="bg-gray-800 bg-opacity-70 backdrop-blur-sm p-6 md:p-8 rounded-xl shadow-2xl mb-8">
+                <h2 class="text-xl font-bold text-white mb-4">Add a New Alarm</h2>
+                <form id="alarm-form" class="space-y-4">
+                    <div>
+                        <label for="youtubeUrl" class="block text-sm font-medium text-gray-300 mb-2">YouTube URL</label>
+                        <input type="url" id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-gray-700 text-white border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition" required />
+                    </div>
+                    <div class="flex bg-gray-700 rounded-lg p-1">
+                        <button type="button" id="mode-time-btn" class="w-1/2 py-2 rounded-md transition text-sm font-semibold flex items-center justify-center bg-red-500 text-white"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 h-5 w-5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Specific Time</button>
+                        <button type="button" id="mode-timer-btn" class="w-1/2 py-2 rounded-md transition text-sm font-semibold flex items-center justify-center text-gray-300 hover:bg-gray-600"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 h-5 w-5"><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="18" x2="12" y2="22"></line><path d="M12 6V2h.5a2.5 2.5 0 0 1 0 5H12V6zM12 6V2h-.5a2.5 2.5 0 0 0 0 5H12V6z"></path><path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12z"></path></svg> Timer</button>
+                    </div>
+                    <div id="time-input-container">
+                        <label for="time" class="block text-sm font-medium text-gray-300 mb-2">Alarm Time</label>
+                        <input type="time" id="time" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition" required />
+                    </div>
+                    <div id="duration-input-container" class="hidden">
+                        <label for="duration" class="block text-sm font-medium text-gray-300 mb-2">Timer Duration (minutes)</label>
+                        <input type="number" id="duration" value="1" min="1" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition" required />
+                    </div>
+                    <button type="submit" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="mr-2"><path d="M21.582,6.186c-0.23-0.86-0.908-1.538-1.768-1.768C18.25,4,12,4,12,4S5.75,4,4.186,4.418 c-0.86,0.23-1.538,0.908-1.768,1.768C2,7.75,2,12,2,12s0,4.25,0.418,5.814c0.23,0.86,0.908,1.538,1.768,1.768 C5.75,20,12,20,12,20s6.25,0,7.814-0.418c0.861-0.23,1.538-0.908,1.768-1.768C22,16.25,22,12,22,12S22,7.75,21.582,6.186z M10,15.464V8.536L16,12L10,15.464z" /></svg> Add to Schedule</button>
+                </form>
+            </div>
+
+            <div class="bg-gray-800 bg-opacity-70 backdrop-blur-sm p-6 md:p-8 rounded-xl shadow-2xl">
+                <h2 class="text-xl font-bold text-white mb-4">Scheduled Alarms</h2>
+                <ul id="alarms-list" class="space-y-3">
+                    <!-- Alarms will be dynamically inserted here -->
+                </ul>
+            </div>
+
+            <footer class="text-center mt-8 text-gray-500 text-xs">
+                <p>YouTube Multi-Alarm Scheduler</p>
+                <p>Launches and reuses the same tab for alarms.</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- STATE MANAGEMENT ---
+            let alarms = [];
+            let mode = 'time';
+            let playerWindowRef = null;
+            let weatherData = null;
+            let useWeatherTheme = localStorage.getItem('useWeatherTheme') === 'true';
+            let openMode = localStorage.getItem('openMode') || 'newTab'; // 'newTab' or 'sameTab'
+
+            // --- DOM ELEMENTS ---
+            const mainBody = document.getElementById('main-body');
+            const greetingEl = document.getElementById('greeting');
+            const subGreetingEl = document.getElementById('sub-greeting');
+            const alarmForm = document.getElementById('alarm-form');
+            const youtubeUrlInput = document.getElementById('youtubeUrl');
+            const timeInput = document.getElementById('time');
+            const durationInput = document.getElementById('duration');
+            const modeTimeBtn = document.getElementById('mode-time-btn');
+            const modeTimerBtn = document.getElementById('mode-timer-btn');
+            const timeInputContainer = document.getElementById('time-input-container');
+            const durationInputContainer = document.getElementById('duration-input-container');
+            const alarmsList = document.getElementById('alarms-list');
+            const messageContainer = document.getElementById('message-container');
+            const weatherToggle = document.getElementById('weather-toggle');
+            const openModeContainer = document.getElementById('open-mode-container');
+
+            // --- THEME DEFINITIONS ---
+            const themes = {
+                morning: { greeting: "Good Morning", bg: "bg-yellow-800", text: "text-yellow-100" },
+                afternoon: { greeting: "Good Afternoon", bg: "bg-blue-800", text: "text-blue-100" },
+                evening: { greeting: "Good Evening", bg: "bg-indigo-900", text: "text-indigo-100" },
+                night: { greeting: "Good Night", bg: "bg-gray-900", text: "text-gray-200" },
+                sunny: { bg: "bg-orange-600", text: "text-white" },
+                cloudy: { bg: "bg-gray-600", text: "text-white" },
+                rainy: { bg: "bg-slate-700", text: "text-white" },
+            };
+            
+            const weatherCodeMap = {
+                0: 'sunny', 1: 'sunny', 2: 'cloudy', 3: 'cloudy', 45: 'cloudy', 48: 'cloudy',
+                51: 'rainy', 53: 'rainy', 55: 'rainy', 61: 'rainy', 63: 'rainy', 65: 'rainy',
+                80: 'rainy', 81: 'rainy', 82: 'rainy',
+            };
+
+            // --- RENDER & UI FUNCTIONS ---
+            const applyTheme = (greetingTheme, styleTheme) => {
+                mainBody.className = `text-white transition-colors duration-1000 ${styleTheme.bg}`;
+                greetingEl.textContent = greetingTheme.greeting;
+                greetingEl.className = `text-4xl md:text-5xl font-bold transition-colors duration-500 ${styleTheme.text}`;
+            };
+
+            const updateDynamicTheme = () => {
+                const hour = new Date().getHours();
+                let timeOfDay;
+                if (hour >= 5 && hour < 12) timeOfDay = 'morning';
+                else if (hour >= 12 && hour < 18) timeOfDay = 'afternoon';
+                else if (hour >= 18 && hour < 22) timeOfDay = 'evening';
+                else timeOfDay = 'night';
+
+                const greetingTheme = themes[timeOfDay];
+
+                if (useWeatherTheme && weatherData) {
+                    const weatherCondition = weatherCodeMap[weatherData.weathercode] || 'sunny';
+                    const styleTheme = themes[weatherCondition];
+                    applyTheme(greetingTheme, styleTheme);
+                    const conditionText = weatherCondition.charAt(0).toUpperCase() + weatherCondition.slice(1);
+                    subGreetingEl.textContent = `It's currently ${weatherData.temperature}°C and ${conditionText}.`;
+                } else {
+                    const styleTheme = themes[timeOfDay];
+                    applyTheme(greetingTheme, styleTheme);
+                    subGreetingEl.textContent = "Welcome to your YouTube Multi-Alarm Scheduler";
+                }
+            };
+
+            const renderAlarms = () => {
+                alarmsList.innerHTML = '';
+                if (alarms.length === 0) {
+                    alarmsList.innerHTML = '<p class="text-gray-400 text-center py-4">No alarms scheduled.</p>';
+                    return;
+                }
+                alarms.forEach(alarm => {
+                    const statusStyles = { scheduled: { text: 'Scheduled', color: 'bg-blue-500' }, playing: { text: 'Playing', color: 'bg-green-500 animate-pulse' }, finished: { text: 'Finished', color: 'bg-gray-500' } };
+                    const currentStatus = statusStyles[alarm.status] || statusStyles.finished;
+                    const li = document.createElement('li');
+                    li.className = 'bg-gray-700 p-3 rounded-lg flex items-center justify-between text-sm';
+                    li.innerHTML = `<div class="flex-grow overflow-hidden mr-4"><p class="font-semibold text-white truncate">${alarm.youtubeUrl}</p><p class="text-gray-400">${alarm.displayTime}</p></div><div class="flex items-center space-x-4"><div class="flex items-center"><span class="w-3 h-3 rounded-full mr-2 ${currentStatus.color}"></span><span class="text-xs font-medium">${currentStatus.text}</span></div><button data-id="${alarm.id}" class="delete-btn bg-red-600 hover:bg-red-700 text-white p-2 rounded-full transition duration-300"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button></div>`;
+                    alarmsList.appendChild(li);
+                });
+            };
+
+            const showMessage = (text, type = 'info') => {
+                const typeClasses = { error: "bg-red-100 text-red-800", success: "bg-green-100 text-green-800", info: "bg-blue-100 text-blue-800" };
+                messageContainer.innerHTML = `<div class="p-3 rounded-lg my-4 text-center text-sm font-semibold flex items-center justify-center shadow-md ${typeClasses[type]}" role="alert"><span>${text}</span><button onclick="this.parentElement.remove()" class="ml-4 font-bold text-lg">&times;</button></div>`;
+                setTimeout(() => { if (messageContainer.firstChild) messageContainer.firstChild.remove(); }, 5000);
+            };
+
+            // --- API & CORE LOGIC ---
+            const isValidYouTubeUrl = (url) => {
+                try {
+                    const urlObj = new URL(url);
+                    return urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be');
+                } catch (_) {
+                    return false;
+                }
+            };
+
+            const fetchWeather = (lat, lon) => {
+                fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.current_weather) {
+                            weatherData = data.current_weather;
+                            updateDynamicTheme();
+                        }
+                    }).catch(error => {
+                        console.error("Error fetching weather:", error);
+                        showMessage("Could not fetch weather data.", "error");
+                    });
+            };
+
+            const getLocationAndFetchWeather = () => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => fetchWeather(position.coords.latitude, position.coords.longitude),
+                        (error) => { 
+                            showMessage("Location permission denied. Using default theme.", "info");
+                            useWeatherTheme = false;
+                            weatherToggle.checked = false;
+                            localStorage.setItem('useWeatherTheme', 'false');
+                            updateDynamicTheme();
+                        }
+                    );
+                } else {
+                    showMessage("Geolocation is not supported by your browser.", "error");
+                    updateDynamicTheme();
+                }
+            };
+            
+            // --- EVENT HANDLERS ---
+            alarmForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const url = youtubeUrlInput.value;
+                if (!url || !isValidYouTubeUrl(url)) { showMessage('Please enter a valid YouTube URL.', 'error'); return; }
+                let targetTime;
+                if (mode === 'time') {
+                    if (!timeInput.value) { showMessage('Please select a time.', 'error'); return; }
+                    const [hours, minutes] = timeInput.value.split(':');
+                    targetTime = new Date();
+                    targetTime.setHours(hours, minutes, 0, 0);
+                    if (targetTime < new Date()) targetTime.setDate(targetTime.getDate() + 1);
+                } else {
+                    const durationVal = parseInt(durationInput.value, 10);
+                    if (durationVal <= 0) { showMessage('Timer duration must be greater than 0.', 'error'); return; }
+                    targetTime = new Date(new Date().getTime() + durationVal * 60000);
+                }
+                if (alarms.some(alarm => alarm.targetTime.getTime() === targetTime.getTime())) { showMessage('An alarm is already set for this exact time.', 'error'); return; }
+                const newAlarm = { id: Date.now(), targetTime, youtubeUrl: url, displayTime: targetTime.toLocaleString(), status: 'scheduled' };
+                alarms.push(newAlarm);
+                alarms.sort((a, b) => a.targetTime - b.targetTime);
+                showMessage(`Alarm set for ${newAlarm.displayTime}.`, 'success');
+                alarmForm.reset();
+                durationInput.value = 1;
+                renderAlarms();
+            });
+
+            modeTimeBtn.addEventListener('click', () => {
+                mode = 'time';
+                timeInputContainer.style.display = 'block';
+                durationInputContainer.style.display = 'none';
+                modeTimeBtn.className = 'w-1/2 py-2 rounded-md transition text-sm font-semibold flex items-center justify-center bg-red-500 text-white';
+                modeTimerBtn.className = 'w-1/2 py-2 rounded-md transition text-sm font-semibold flex items-center justify-center text-gray-300 hover:bg-gray-600';
+            });
+            modeTimerBtn.addEventListener('click', () => {
+                mode = 'timer';
+                timeInputContainer.style.display = 'none';
+                durationInputContainer.style.display = 'block';
+                modeTimerBtn.className = 'w-1/2 py-2 rounded-md transition text-sm font-semibold flex items-center justify-center bg-red-500 text-white';
+                modeTimeBtn.className = 'w-1/2 py-2 rounded-md transition text-sm font-semibold flex items-center justify-center text-gray-300 hover:bg-gray-600';
+            });
+            alarmsList.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-btn')) {
+                    const button = e.target.closest('.delete-btn');
+                    const id = parseInt(button.dataset.id, 10);
+                    const alarmToDelete = alarms.find(alarm => alarm.id === id);
+                    if (alarmToDelete && alarmToDelete.status === 'playing') {
+                        if (playerWindowRef && !playerWindowRef.closed) {
+                            playerWindowRef.close();
+                            playerWindowRef = null;
+                        }
+                    }
+                    alarms = alarms.filter(alarm => alarm.id !== id);
+                    showMessage('Alarm removed.', 'info');
+                    renderAlarms();
+                }
+            });
+            weatherToggle.addEventListener('change', (e) => {
+                useWeatherTheme = e.target.checked;
+                localStorage.setItem('useWeatherTheme', useWeatherTheme);
+                if (useWeatherTheme) {
+                    getLocationAndFetchWeather();
+                } else {
+                    weatherData = null;
+                    updateDynamicTheme();
+                }
+            });
+            openModeContainer.addEventListener('change', (e) => {
+                if (e.target.type === 'radio') {
+                    openMode = e.target.value;
+                    localStorage.setItem('openMode', openMode);
+                }
+            });
+
+            // --- CORE ALARM LOGIC ---
+            setInterval(() => {
+                const now = new Date();
+                let nextAlarmToTrigger = null;
+                for (const alarm of alarms) {
+                    if (alarm.status === 'scheduled' && alarm.targetTime <= now) {
+                        nextAlarmToTrigger = alarm;
+                        break;
+                    }
+                }
+                if (nextAlarmToTrigger) {
+                    const currentlyPlayingAlarm = alarms.find(a => a.status === 'playing');
+                    if (currentlyPlayingAlarm) {
+                        currentlyPlayingAlarm.status = 'finished';
+                    }
+                    
+                    if (openMode === 'newTab') {
+                        playerWindowRef = window.open(nextAlarmToTrigger.youtubeUrl, 'youtubePlayer');
+                    } else {
+                        window.location.href = nextAlarmToTrigger.youtubeUrl;
+                    }
+                    
+                    if (openMode === 'newTab' && (!playerWindowRef || playerWindowRef.closed || typeof playerWindowRef.closed == 'undefined')) {
+                        showMessage('Your browser blocked the popup. Please allow popups for this site to use "New Tab" mode.', 'error');
+                        nextAlarmToTrigger.status = 'scheduled'; 
+                    } else {
+                        if (playerWindowRef) playerWindowRef.focus();
+                        nextAlarmToTrigger.status = 'playing';
+                    }
+                    renderAlarms();
+                }
+                if (playerWindowRef && playerWindowRef.closed) {
+                    const playingAlarm = alarms.find(a => a.status === 'playing');
+                    if (playingAlarm) {
+                        playingAlarm.status = 'finished';
+                        renderAlarms();
+                    }
+                    playerWindowRef = null;
+                }
+            }, 1000);
+
+            // --- INITIALIZATION ---
+            weatherToggle.checked = useWeatherTheme;
+            document.querySelector(`input[name="open-mode"][value="${openMode}"]`).checked = true;
+            if (useWeatherTheme) {
+                getLocationAndFetchWeather();
+            } else {
+                updateDynamicTheme();
+            }
+            setInterval(updateDynamicTheme, 60000);
+            renderAlarms();
+        });
+    </script>
+</body>
+</html>
